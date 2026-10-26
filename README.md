@@ -16,6 +16,11 @@ hook."* Claude builds the edit in code and renders the video.
 It started as a one-paragraph setup prompt for Claude. Video Studio is that prompt made reliable for anyone: the
 same setup every time, on any computer, with every render checked before you see it.
 
+<p align="center">
+<a href="docs/media/video-studio-setup.mp4"><img src="docs/media/setup-demo.gif" width="800" alt="Setting up Video Studio in four steps: add the plugin, make a project, add clips, ask for the edit"></a><br>
+<sub>Setup in four steps (sped up). <a href="docs/media/video-studio-setup.mp4">Watch the full video with sound</a> (1 min).</sub>
+</p>
+
 ## How it works
 
 **1. Install it** (once, about 30 seconds). In claude.ai or the Claude desktop app, open
