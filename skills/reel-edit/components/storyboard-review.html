@@ -1,0 +1,157 @@
+<!-- Storyboard review kit: paste at the end of a storyboard page and publish
+     with capabilities: {db: {}, user: {}}. It adds, for every
+     <article class="beat"> (keyed by its .bnum text):
+       Keep / Maybe / Drop  +  a notes box  +  Claude's reply when there is one
+     a sticky progress bar ("3 of 15 reviewed", "Unreviewed only") before
+     .beats, and a "Done reviewing?" box with Submit review after it.
+     Set the round on the beats container: <div class="beats" data-round="2">.
+     db layout (Claude reads it with ArtifactData):
+       notes/beat-<n>   {note, noteAt, rating, round, ratedAt, reply?, replyAt?}
+       notes/general    {note, noteAt}
+       review/round-<r> {round, submittedAt, general, reviewed, withNotes, beats: {<n>: {title, rating, note}}}
+     A rating only counts for the round it was given in. Uses the page's own
+     tokens (--surface, --line, --fg, --muted, --accent, --bg) with fallbacks. -->
+<style>
+.sbr-bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; padding: 10px 0; margin-bottom: 14px; background: var(--bg, #fff); border-bottom: 1px solid var(--line, #ddd); }
+.sbr-prog { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted, #777); font-variant-numeric: tabular-nums; }
+.sbr-prog b { color: var(--fg, #222); font-weight: 600; }
+.sbr-track { width: 140px; height: 4px; border-radius: 4px; background: var(--line, #ddd); overflow: hidden; }
+.sbr-track i { display: block; height: 100%; width: 0; background: var(--accent, #c15f3c); transition: width .3s; }
+.sbr-tog { font: inherit; font-size: 13px; color: var(--fg, #222); background: transparent; border: 1px solid var(--line, #ddd); border-radius: 999px; padding: 4px 12px; cursor: pointer; }
+.sbr-tog[aria-pressed="true"] { background: var(--fg, #222); color: var(--bg, #fff); border-color: var(--fg, #222); }
+body.sbr-unreviewed article.beat[data-rating] { display: none; }
+.sbr { display: flex; flex-direction: column; gap: 8px; border-top: 1px dashed var(--line, #ddd); padding-top: 12px; margin-top: 2px; }
+.sbr-seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.sbr-seg button { font: inherit; font-size: 13px; font-weight: 600; color: var(--fg, #222); background: transparent; border: 1px solid var(--line, #ddd); border-radius: 8px; padding: 6px 0; cursor: pointer; }
+.sbr-seg button:hover { border-color: var(--fg, #222); }
+.sbr-seg button[aria-pressed="true"][data-v="keep"] { background: var(--accent, #c15f3c); border-color: var(--accent, #c15f3c); color: var(--bg, #fff); }
+.sbr-seg button[aria-pressed="true"][data-v="maybe"] { background: #4F8FC0; border-color: #4F8FC0; color: #fff; }
+.sbr-seg button[aria-pressed="true"][data-v="drop"] { background: #B34263; border-color: #B34263; color: #fff; }
+.sbr-hint { font-size: 12px; color: var(--muted, #777); }
+.sbr textarea, .sbr-done textarea { width: 100%; min-height: 60px; resize: vertical; font: inherit; font-size: 14px; line-height: 1.45; color: var(--fg, #222); background: var(--bg, #fff); border: 1px solid var(--line, #ddd); border-radius: 10px; padding: 9px 12px; box-sizing: border-box; }
+.sbr textarea:focus-visible, .sbr-done textarea:focus-visible, .sbr-seg button:focus-visible, .sbr-tog:focus-visible, .sbr-submit:focus-visible { outline: 2px solid var(--accent, #c15f3c); outline-offset: 1px; }
+.sbr-row { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--muted, #777); min-height: 18px; }
+.sbr-reply { font-size: 14px; background: var(--tag-bg, rgba(127,127,127,.12)); border-radius: 10px; padding: 8px 12px; }
+.sbr-reply b { font-weight: 600; margin-right: 6px; }
+article.beat[data-rating="keep"] { box-shadow: 0 0 0 2px var(--accent, #c15f3c); }
+article.beat[data-rating="maybe"] { box-shadow: 0 0 0 2px #4F8FC0; }
+article.beat[data-rating="drop"] { box-shadow: 0 0 0 2px #B34263; opacity: .7; }
+.sbr-done { margin-top: 28px; background: var(--surface, #fff); border: 1px solid var(--line, #ddd); border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
+.sbr-done h2 { margin: 0; font-size: 22px; }
+.sbr-done p { margin: 0; color: var(--muted, #777); font-size: 14px; }
+.sbr-submit { align-self: flex-start; font: inherit; font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--bg, #fff); background: var(--fg, #222); border: 0; border-radius: 10px; padding: 10px 16px; cursor: pointer; }
+.sbr-submit:disabled { opacity: .5; cursor: default; }
+.sbr-status { font-size: 14px; min-height: 20px; color: var(--accent, #c15f3c); }
+</style>
+<script>
+(() => {
+  const beatsEl = document.querySelector(".beats");
+  const ROUND = Number(beatsEl?.dataset.round || 1);
+  const beats = []; // {n, title, el, box}
+  const fmt = (iso) => { try { return new Date(iso).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }); } catch (_) { return ""; } };
+  const mk = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+
+  // controls under each beat
+  document.querySelectorAll("article.beat").forEach((a) => {
+    const n = (a.querySelector(".bnum")?.textContent || "").trim();
+    if (!n) return;
+    const title = (a.querySelector("h2, h3")?.textContent || "Beat " + n).trim();
+    const w = mk("div", "sbr");
+    w.innerHTML = `<div class="sbr-seg" role="group" aria-label="Your call on beat ${n}">
+        <button type="button" data-v="keep" aria-pressed="false">Keep</button>
+        <button type="button" data-v="maybe" aria-pressed="false">Maybe</button>
+        <button type="button" data-v="drop" aria-pressed="false">Drop</button></div>
+      <div class="sbr-hint">Keep as is · Maybe = change it (say how) · Drop = cut this graphic</div>
+      <textarea id="sbr-note-${n}" aria-label="Notes on beat ${n}" placeholder="Connecting..." disabled></textarea>
+      <div class="sbr-row"><span class="sbr-status-line" aria-live="polite"></span></div>
+      <div class="sbr-reply" hidden></div>`;
+    (a.querySelector(".info") || a).appendChild(w);
+    beats.push({ n, title, el: a, w, ta: w.querySelector("textarea"), line: w.querySelector(".sbr-status-line"), reply: w.querySelector(".sbr-reply"), rating: null, note: "", exists: false, chain: Promise.resolve(), timer: 0, dirty: false });
+  });
+
+  // progress bar before the beats, review box after
+  const bar = mk("div", "sbr-bar", `<div class="sbr-prog"><span><b id="sbr-n">0</b> of ${beats.length} reviewed · round ${ROUND}</span><div class="sbr-track"><i id="sbr-fill"></i></div></div>
+    <button class="sbr-tog" id="sbr-unrev" type="button" aria-pressed="false">Unreviewed only</button>`);
+  const done = mk("section", "sbr-done", `<h2>Done reviewing?</h2><p>Anything about the whole video: the overall feel, pacing, what's missing.</p>
+    <textarea id="sbr-general" aria-label="General notes" placeholder="Connecting..." disabled></textarea>
+    <button class="sbr-submit" id="sbr-submit" type="button">Submit review</button><div class="sbr-status" id="sbr-status" aria-live="polite"></div>
+    <p>Notes save as you go. Submit sends this round to Claude in one go; then say "done" in the chat.</p>`);
+  if (beatsEl) { beatsEl.parentNode.insertBefore(bar, beatsEl); beatsEl.parentNode.insertBefore(done, beatsEl.nextSibling); }
+  const unrev = document.getElementById("sbr-unrev");
+  unrev?.addEventListener("click", () => { const on = unrev.getAttribute("aria-pressed") !== "true"; unrev.setAttribute("aria-pressed", String(on)); document.body.classList.toggle("sbr-unreviewed", on); });
+  const gen = document.getElementById("sbr-general");
+  const submit = document.getElementById("sbr-submit");
+  const status = document.getElementById("sbr-status");
+
+  function paint(b) {
+    if (b.rating) b.el.dataset.rating = b.rating; else delete b.el.dataset.rating;
+    b.w.querySelectorAll(".sbr-seg button").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.v === b.rating)));
+    const c = beats.filter((x) => x.rating).length;
+    const nEl = document.getElementById("sbr-n"); if (nEl) nEl.textContent = c;
+    const fill = document.getElementById("sbr-fill"); if (fill) fill.style.width = (100 * c / Math.max(1, beats.length)) + "%";
+  }
+  function offline(msg) { beats.forEach((b) => { b.ta.placeholder = msg; b.ta.disabled = true; }); if (gen) { gen.placeholder = msg; gen.disabled = true; } if (submit) submit.disabled = true; }
+
+  (async () => {
+    const db = await (window.claude?.use?.("db") ?? null);
+    if (!db) return offline("Open this page signed in to claude.ai to review.");
+    const user = await (window.claude?.use?.("user") ?? null);
+    const canWrite = user ? await user.can("data.write") : null;
+    const col = db.collection("notes");
+    if (canWrite === false) return offline("View only");
+
+    const write = (b, body) => {
+      b.chain = b.chain.then(async () => {
+        const ref = col.doc("beat-" + b.n);
+        if (b.exists) await ref.update(body); else { await ref.set(body); b.exists = true; }
+        b.line.textContent = "Saved";
+      }).catch((e) => { b.line.textContent = e && e.code === "invalid_argument" ? "You can't review on this page." : "Not saved. Check your connection and try again."; });
+    };
+    beats.forEach((b) => {
+      b.ta.disabled = false;
+      b.ta.placeholder = "What works, what to change";
+      b.w.querySelectorAll(".sbr-seg button").forEach((btn) => btn.addEventListener("click", () => {
+        b.rating = b.rating === btn.dataset.v ? null : btn.dataset.v;
+        paint(b);
+        write(b, { rating: b.rating, round: ROUND, ratedAt: new Date().toISOString() });
+      }));
+      const saveNote = () => { b.dirty = false; write(b, { note: b.ta.value.trim(), noteAt: new Date().toISOString() }); };
+      b.ta.addEventListener("input", () => { b.dirty = true; b.line.textContent = "Typing..."; clearTimeout(b.timer); b.timer = setTimeout(saveNote, 900); });
+      b.ta.addEventListener("blur", () => { if (b.dirty) { clearTimeout(b.timer); saveNote(); } });
+    });
+
+    let genExists = false, genChain = Promise.resolve(), gt = 0;
+    gen.disabled = false; gen.placeholder = "e.g. pacing feels rushed in the middle, the music is too loud";
+    const saveGen = () => { genChain = genChain.then(async () => { const ref = col.doc("general"); const body = { note: gen.value.trim(), noteAt: new Date().toISOString() }; if (genExists) await ref.update(body); else { await ref.set(body); genExists = true; } }).catch(() => {}); };
+    gen.addEventListener("input", () => { clearTimeout(gt); gt = setTimeout(saveGen, 900); });
+
+    col.onSnapshot((snap) => {
+      snap.docs.forEach((d) => {
+        const v = d.data() || {};
+        if (d.id === "general") { genExists = true; if (document.activeElement !== gen && !gen.value) gen.value = v.note || ""; return; }
+        const b = beats.find((x) => "beat-" + x.n === d.id);
+        if (!b) return;
+        b.exists = true;
+        b.rating = v.round === ROUND ? v.rating || null : null; // ratings count for their own round only
+        if (document.activeElement !== b.ta && !b.dirty) b.ta.value = v.note || "";
+        if (v.noteAt && !b.line.textContent) b.line.textContent = "Saved " + fmt(v.noteAt);
+        if (v.reply) { b.reply.hidden = false; b.reply.innerHTML = ""; const k = document.createElement("b"); k.textContent = "Claude:"; b.reply.append(k, document.createTextNode(String(v.reply))); }
+        else b.reply.hidden = true;
+        paint(b);
+      });
+    }, () => offline("Review is unavailable right now. Reload to try again."));
+
+    submit.addEventListener("click", async () => {
+      const out = {};
+      let reviewed = 0, withNotes = 0;
+      beats.forEach((b) => { const note = b.ta.value.trim(); if (b.rating) reviewed++; if (note) withNotes++; if (b.rating || note) out[b.n] = { title: b.title, rating: b.rating, note }; });
+      submit.disabled = true; status.textContent = "Submitting...";
+      try {
+        await db.doc("review/round-" + ROUND).set({ round: ROUND, submittedAt: new Date().toISOString(), general: gen.value.trim(), reviewed, withNotes, total: beats.length, beats: out });
+        status.textContent = `Submitted: ${reviewed} of ${beats.length} reviewed, ${withNotes} with notes. Say "done" in the chat.`;
+      } catch (e) { status.textContent = "Not submitted. Check your connection and try again."; }
+      finally { submit.disabled = false; }
+    });
+  })();
+})();
+</script>

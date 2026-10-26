@@ -1,0 +1,21 @@
+{
+  "name": "video-studio",
+  "displayName": "Video Studio",
+  "version": "0.6.0",
+  "description": "Edit reels by talking to Claude: join clips, cut the pauses, frame-exact captions, hooks and motion graphics, rendered with Remotion. One-line setup.",
+  "author": {
+    "name": "Bharat"
+  },
+  "homepage": "https://github.com/bharatk101/claude-video-studio",
+  "repository": "https://github.com/bharatk101/claude-video-studio",
+  "keywords": [
+    "video",
+    "reels",
+    "shorts",
+    "remotion",
+    "jump-cuts",
+    "captions",
+    "motion-graphics",
+    "ffmpeg"
+  ]
+}

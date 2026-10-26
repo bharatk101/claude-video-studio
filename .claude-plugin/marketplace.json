@@ -1,0 +1,14 @@
+{
+  "name": "video-studio",
+  "description": "Video Studio: reel editing in code, for the Claude app and Claude Code.",
+  "owner": {
+    "name": "Bharat"
+  },
+  "plugins": [
+    {
+      "name": "video-studio",
+      "source": "./",
+      "description": "Edit filmed reels by talking to Claude: join clips, jump cuts, frame-exact captions, hooks and graphics."
+    }
+  ]
+}

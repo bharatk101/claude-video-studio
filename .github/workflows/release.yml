@@ -1,0 +1,73 @@
+name: Release
+
+# Publishes video-studio.zip (for Customize > Plugins > Upload plugin) as a GitHub release. Three ways in:
+#   - push a tag like v0.5.0
+#   - publish a release on GitHub (Releases > Draft a new release): the zip is attached to it
+#   - Actions > Release > Run workflow: releases the version in .claude-plugin/plugin.json (tag v<version>)
+on:
+  push:
+    tags: ["v*"]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'release' && github.event.release.tag_name || github.ref }}
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+
+      - name: Which version
+        id: v
+        run: |
+          version=$(python -c "import json; print(json.load(open('.claude-plugin/plugin.json'))['version'])")
+          case "$GITHUB_EVENT_NAME" in
+            release) tag="${{ github.event.release.tag_name }}" ;;
+            push)    tag="$GITHUB_REF_NAME" ;;
+            *)       tag="v$version" ;;
+          esac
+          [ "v$version" = "$tag" ] || { echo "::error::plugin.json says $version but the release is $tag"; exit 1; }
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Build the plugin zip
+        run: python tools/build_zip.py
+
+      - name: Release notes from the changelog
+        run: |
+          awk -v v="${{ steps.v.outputs.version }}" '$0 ~ "^## "v" " {on=1; next} on && /^## / {exit} on' CHANGELOG.md > notes.md
+          cat >> notes.md <<'EOF'
+
+          ## Install
+
+          **Claude app (no commands):** Customize > Plugins > Add > **Upload plugin**, and choose `video-studio.zip`
+          below. Or add the marketplace instead, so it updates itself: Customize > Plugins > Add > **Add marketplace**,
+          then enter `bharatk101/claude-video-studio`.
+
+          **Claude Code:** `/plugin marketplace add bharatk101/claude-video-studio`, then `/plugin install video-studio@video-studio`.
+          EOF
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.v.outputs.tag }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/video-studio.zip --clobber
+          else
+            gh release create "$TAG" dist/video-studio.zip --target "$GITHUB_SHA" \
+              --title "Video Studio $TAG" --notes-file notes.md --latest
+          fi
+          gh release view "$TAG" --json url,assets --jq '.url + "  " + ([.assets[].name] | join(", "))'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: video-studio-zip
+          path: dist/video-studio.zip

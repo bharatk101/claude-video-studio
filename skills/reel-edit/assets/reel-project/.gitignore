@@ -1,0 +1,13 @@
+node_modules/
+out/*
+!out/.gitkeep
+bin/
+*.words.json.bak
+.DS_Store
+.env
+# your footage and music usually shouldn't be committed
+public/recordings/*
+public/screen-recordings/*
+public/music pack/*
+public/sound pack/*
+!public/**/.gitkeep
