@@ -240,6 +240,16 @@ def run_sh_parses_and_helps():
 
 
 @test
+def windows_launchers():
+    proj = os.path.join(ROOT, "skills", "reel-edit", "assets", "reel-project")
+    for n in ("setup.cmd", "run.cmd"):
+        raw = open(os.path.join(proj, n), "rb").read()
+        assert raw.count(b"\n") == raw.count(b"\r\n"), f"{n} needs CRLF line endings"
+    assert b"run.cmd\" setup" in open(os.path.join(proj, "setup.cmd"), "rb").read()
+    assert b"run.sh %*" in open(os.path.join(proj, "run.cmd"), "rb").read()
+
+
+@test
 def app_mode_doc_linked_from_the_skill():
     assert "app-mode.md" in open(os.path.join(ROOT, "skills", "reel-edit", "SKILL.md")).read()
     assert os.path.exists(os.path.join(ROOT, "skills", "reel-edit", "references", "app-mode.md"))

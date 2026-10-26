@@ -32,13 +32,13 @@ Capabilities > Create and edit files**.)
 
 > Set up a reel project in ~/Movies/reels
 
-Claude creates the project and gives you **one line** to paste, which installs and checks everything, ending in
-`ok` or `FAIL` for each step:
+Claude creates the project, then setup installs and checks everything, ending in `ok` or `FAIL` for each step.
+On a Mac or Linux you paste **one line** into Terminal; on Windows you double-click `setup.cmd`:
 
 | | Say | Paste |
 |---|---|---|
 | macOS | Set up a reel project in `~/Movies/reels` | `cd ~/Movies/reels && bash run.sh setup` (Terminal) |
-| Windows | Set up a reel project in `C:\Users\you\Videos\reels` | `cd ~/Videos/reels && bash run.sh setup` ([Git Bash](https://git-scm.com/download/win)) |
+| Windows | Set up a reel project in my Videos folder | nothing to paste: **double-click `setup.cmd`** in the new `reels` folder |
 | Linux | Set up a reel project in `~/Videos/reels` | `cd ~/Videos/reels && bash run.sh setup` |
 | Your own folder | Set up a reel project in `~/Dropbox/Shorts` (any path, any drive) | the line Claude gives you |
 

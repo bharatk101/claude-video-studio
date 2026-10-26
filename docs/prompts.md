@@ -19,7 +19,7 @@ project can live anywhere. These are the usual places:
 | Your computer | Say | Then paste this one line |
 |---|---|---|
 | **macOS** | > Set up a reel project in ~/Movies/reels | `cd ~/Movies/reels && bash run.sh setup` in **Terminal** |
-| **Windows** | > Set up a reel project in C:\Users\\*you*\Videos\reels | `cd ~/Videos/reels && bash run.sh setup` in **Git Bash** |
+| **Windows** | > Set up a reel project in my Videos folder | nothing: open the new `reels` folder and **double-click `setup.cmd`** |
 | **Linux** | > Set up a reel project in ~/Videos/reels | `cd ~/Videos/reels && bash run.sh setup` in a terminal |
 
 **Your own folder.** Any path works, including another drive or a synced folder:
@@ -30,15 +30,19 @@ project can live anywhere. These are the usual places:
 
 > Set up a reel project in the folder I just linked
 
-Claude gives you the line for that folder. In Git Bash, a Windows path like `D:\Content\Reels` is written
-`/d/Content/Reels`, and Claude converts it for you. Folder names with spaces are fine too: Claude quotes
-them, for example `cd ~/"My Videos/reels"`.
+Claude gives you the line for that folder (on Windows: the folder to double-click `setup.cmd` in). Folder names
+with spaces are fine too: Claude quotes them, for example `cd ~/"My Videos/reels"`.
 
-**Windows notes.** `run.sh` is a bash script, so it runs in **Git Bash** (installed with
-[Git for Windows](https://git-scm.com/download/win)) or in WSL, not in PowerShell or Command Prompt. Setup tells
-you what to install if something is missing, for example `winget install Gyan.FFmpeg`. Building whisper.cpp
-needs a C++ compiler, so without Visual Studio Build Tools, setup uses faster-whisper instead. Your captions work
-either way.
+**Windows notes.** Don't paste the Mac line into PowerShell (it fails with *"The token '&&' is not a valid
+statement separator"*). Double-click `setup.cmd` instead. It finds Git Bash, installs Git for Windows if it's
+missing, then installs ffmpeg, Node and Python with winget and runs setup in a window that stays open, ending in
+*All set.* Windows may ask to allow the installs. Later steps run from PowerShell with `run.cmd`, for example
+`cd ~\Videos\reels; .\run.cmd transcribe public/recordings/take.mp4`. Building whisper.cpp needs a C++ compiler, so
+without Visual Studio Build Tools setup uses faster-whisper instead. Your captions work either way.
+
+**Want Claude to run setup for you?** In Claude Code (or the desktop app's Code tab) Claude runs every step
+itself. In the Claude app, Claude works in a sandbox that can't install programs on your computer, so this one
+step is yours.
 
 **Already have a project?**
 

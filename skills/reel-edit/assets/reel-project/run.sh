@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Everything that has to run on your own computer, as one short command each.
 # Claude (in the Claude app or Claude Code) writes the edit; you paste one of these into Terminal when asked.
-# macOS and Linux: Terminal. Windows: Git Bash (comes with Git for Windows) or WSL.
+# macOS and Linux: Terminal. Windows: double-click setup.cmd, or run.cmd <command> from PowerShell (both use Git Bash).
 #
 #   bash run.sh setup                          once per machine/project: tools, packages, whisper + model, self-test
 #   bash run.sh assemble <clips...> --out <take.mp4> [--jumpcuts]   several clips -> one take (+ cuts, words)
@@ -21,6 +21,15 @@ ROOT=$(pwd)
 OS=$(uname -s)
 case "$OS" in MINGW*|MSYS*|CYGWIN*) OS=Windows ;; esac
 FAILS=0
+
+if [ "$OS" = "Windows" ]; then   # where winget, Node and Python install, so tools installed a moment ago are found
+  LAD=$(cygpath -u "${LOCALAPPDATA:-$HOME/AppData/Local}" 2>/dev/null || echo "$HOME/AppData/Local")
+  for d in "$LAD/Microsoft/WinGet/Links" "/c/Program Files/nodejs" "$LAD/Programs/Python/Python312" \
+           "$LAD/Programs/Python/Python312/Scripts" "/c/Program Files/CMake/bin" "$LAD/Microsoft/WindowsApps"; do
+    [ -d "$d" ] && case ":$PATH:" in *":$d:"*) ;; *) PATH="$PATH:$d" ;; esac
+  done
+  export PATH
+fi
 
 say_step() { printf "  %-44s" "$1"; }
 ok() { echo "ok${1:+  ($1)}"; }
@@ -55,22 +64,28 @@ whisper_cli() {
   return 1
 }
 
-need_brew_pkg() {   # $1 = command, $2 = brew package
+need_brew_pkg() {   # $1 = command, $2 = brew package, $3 = winget id: installs what's missing where it can
   if have "$1"; then return 0; fi
   if [ "$OS" = "Darwin" ] && have brew; then brew install "$2" >/dev/null 2>&1 && have "$1" && return 0; fi
+  if [ "$OS" = "Windows" ] && [ -n "${3:-}" ] && have winget.exe; then
+    winget.exe install --id "$3" -e --silent --accept-package-agreements --accept-source-agreements >>/tmp/vs-winget.log 2>&1
+    hash -r; have "$1" && return 0
+  fi
   return 1
 }
+node_ok() { have node && [ "$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null)" -ge 18 ] 2>/dev/null; }
 
 setup() {
   echo "Setting up $(basename "$ROOT") (5-10 minutes the first time)"
 
   say_step "ffmpeg"
-  if need_brew_pkg ffmpeg ffmpeg; then ok "$(ffmpeg -version | head -1 | awk '{print $3}')"
-  else fail "install it: $(hint 'brew install ffmpeg' 'sudo apt install ffmpeg' 'winget install Gyan.FFmpeg, then reopen Git Bash')"; fi
+  if need_brew_pkg ffmpeg ffmpeg Gyan.FFmpeg; then ok "$(ffmpeg -version | head -1 | awk '{print $3}')"
+  else fail "install it: $(hint 'brew install ffmpeg' 'sudo apt install ffmpeg' 'winget install Gyan.FFmpeg, then run setup again')"; fi
 
   say_step "Node.js 18+"
-  if have node && [ "$(node -p 'process.versions.node.split(".")[0]')" -ge 18 ]; then ok "$(node -v)"
-  else fail "install Node 18+: $(hint 'brew install node' 'https://nodejs.org (or your package manager)' 'winget install OpenJS.NodeJS.LTS, then reopen Git Bash')"; fi
+  node_ok || need_brew_pkg node node OpenJS.NodeJS.LTS >/dev/null
+  if node_ok; then ok "$(node -v)"
+  else fail "install Node 18+: $(hint 'brew install node' 'https://nodejs.org (or your package manager)' 'winget install OpenJS.NodeJS.LTS, then run setup again')"; fi
 
   say_step "npm packages (Remotion)"
   if [ -d node_modules/remotion ] || npm install --no-audit --no-fund --loglevel=error >/tmp/vs-npm.log 2>&1; then
@@ -83,9 +98,13 @@ setup() {
 
   say_step "Python 3 + venv (numpy, pillow, opencv)"
   local bp vp
+  if ! base_python >/dev/null && [ "$OS" = "Windows" ] && have winget.exe; then
+    winget.exe install --id Python.Python.3.12 -e --silent --scope user --accept-package-agreements --accept-source-agreements >>/tmp/vs-winget.log 2>&1
+    hash -r
+  fi
   if bp=$(base_python) && { vp=$(venv_python) || { "$bp" -m venv .venv >/dev/null 2>&1 && vp=$(venv_python); }; } \
      && "$vp" -m pip install -q --disable-pip-version-check numpy pillow "opencv-python-headless<5" >/tmp/vs-pip.log 2>&1; then ok
-  else fail "need Python 3.9+ with venv: $(hint 'brew install python' 'sudo apt install python3-venv' 'winget install Python.Python.3.12, then reopen Git Bash'), see /tmp/vs-pip.log"; fi
+  else fail "need Python 3.9+ with venv: $(hint 'brew install python' 'sudo apt install python3-venv' 'winget install Python.Python.3.12, then run setup again'), see /tmp/vs-pip.log"; fi
 
   # Speech to text: whisper.cpp (most accurate timings). Windows without a C++ compiler, or any failed build,
   # falls back to faster-whisper in the venv, so setup still finishes.

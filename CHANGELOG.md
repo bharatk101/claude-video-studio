@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.6.2 (2026-10-26)
+
+Windows setup is a double-click.
+
+- **`setup.cmd`** in every reel project: double-click it in File Explorer. It finds Git Bash (installing Git for
+  Windows with winget if it's missing) and runs setup in a window that stays open. No more pasting a bash line
+  into PowerShell, which fails with *"The token '&&' is not a valid statement separator"*.
+- **`run.cmd <command>`** runs any later step from PowerShell: `cd ~\Videos\reels; .\run.cmd transcribe ...`.
+- On Windows, setup installs missing ffmpeg, Node and Python with winget (as it uses Homebrew on a Mac) and finds
+  them right away without reopening anything.
+- The reel skill never hands a Windows user a `&&` line, and uses their real user folder rather than a literal
+  `C:\Users\you`. The README, prompts, guide and demo video show the double-click.
+- CI runs Windows setup through `setup.cmd`, as a double-click would.
+
 ## 0.6.1 (2026-10-26)
 
 Prompts to copy, any folder on any OS.

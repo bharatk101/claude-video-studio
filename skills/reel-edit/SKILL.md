@@ -56,17 +56,17 @@ bash run.sh setup      # ffmpeg, Node, npm packages, whisper.cpp + model, Remoti
 
 **Where it goes.** Use the folder the creator names, exactly; any path works (another drive, Dropbox, a folder
 with spaces). If they name none, suggest their OS's videos folder: `~/Movies/reels` on macOS, `~/Videos/reels`
-on Linux, `C:\Users\<you>\Videos\reels` on Windows. Copy the template's *contents* into that folder (it may already
-exist and hold their clips; never overwrite their files). The setup line you hand off is always
-`cd <folder> && bash run.sh setup`, written for the shell they'll paste it into:
+on Linux, `%USERPROFILE%\Videos\reels` on Windows (their real user folder; never a literal `C:\Users\you`). Copy the template's *contents* into that folder (it may already
+exist and hold their clips; never overwrite their files). Then hand off setup:
 
-| Their OS | Shell | Folder as written in the line |
+| Their OS | What they do | Later steps (e.g. transcribe) |
 |---|---|---|
-| macOS / Linux | Terminal | `~/Movies/reels`, `~/"My Videos"/reels` (quote the part with spaces) |
-| Windows | **Git Bash** (or WSL), never PowerShell or cmd | `C:\Users\Asha\Videos\reels` → `~/Videos/reels`; `D:\Reels` → `/d/Reels` (WSL: `/mnt/d/Reels`) |
+| macOS / Linux | paste `cd <folder> && bash run.sh setup` into Terminal (quote parts with spaces: `~/"My Videos"/reels`) | `cd <folder> && bash run.sh transcribe ...` |
+| Windows | **double-click `setup.cmd`** in the folder in File Explorer (no typing). It gets Git Bash, ffmpeg, Node and Python itself via winget | in **PowerShell**: `cd <folder>; .\run.cmd transcribe public/recordings/take.mp4` (`;`, never `&&`: Windows PowerShell rejects `&&`) |
 
-On Windows, if they don't have Git Bash, point them to Git for Windows first. Setup prints the `winget` command
-for anything else missing, and uses faster-whisper when there's no C++ compiler for whisper.cpp.
+Never give a Windows user the `&&` bash line: they open PowerShell and it fails. If they are in Git Bash already,
+the bash line works there (`D:\Reels` is `/d/Reels`). setup.cmd falls back to faster-whisper when there's no C++
+compiler for whisper.cpp. In a local session on their machine (Claude Code), run setup yourself instead.
 
 `run.sh` is the project's single entry point for anything that runs on the creator's machine:
 `setup`, `assemble <clips> --out <take>`, `transcribe <take>`, `cuts <take>`, `framing <take>`,

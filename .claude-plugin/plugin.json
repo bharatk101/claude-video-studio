@@ -1,7 +1,7 @@
 {
   "name": "video-studio",
   "displayName": "Video Studio",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "Edit reels by talking to Claude: join clips, cut the pauses, frame-exact captions, hooks and motion graphics, rendered with Remotion. One-line setup.",
   "author": {
     "name": "Bharat"
