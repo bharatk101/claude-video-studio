@@ -79,7 +79,7 @@ jobs:
           npx remotion render src/index.ts Example out/example.mp4 --frames=0-59 --concurrency=75% --log=error
           python "$GITHUB_WORKSPACE/skills/reel-edit/scripts/detect-cuts.py" out/example.mp4 --fps 30 --no-sheets
 
-      - name: setup + real transcription (Windows: setup.cmd, as a double-click would)
+      - name: "setup + real transcription (Windows: setup.cmd, as a double-click would)"
         run: |
           cp -r skills/reel-edit/assets/reel-project "$RUNNER_TEMP/runsh"
           cd "$RUNNER_TEMP/runsh"
