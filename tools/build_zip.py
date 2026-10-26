@@ -26,6 +26,8 @@ def files():
         for dirpath, dirs, names in os.walk(p):
             # keep the starter project's empty out/ placeholder, skip build output everywhere else
             dirs[:] = [d for d in dirs if d not in SKIP_DIRS or (d == "out" and "reel-project" in dirpath)]
+            if os.path.relpath(dirpath, ROOT).replace(os.sep, "/") == "docs":
+                dirs[:] = [d for d in dirs if d != "media"]   # the demo video and GIF stay on GitHub only
             for n in names:
                 if n not in SKIP_FILES and not n.endswith(".pyc"):
                     yield os.path.relpath(os.path.join(dirpath, n), ROOT)
