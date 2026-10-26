@@ -83,8 +83,9 @@ def check_reel(project, fix):
     fw = has_module("faster_whisper")
     wc = None
     if project:
-        p = os.path.join(project, "bin", "whisper.cpp", "build", "bin", "whisper-cli")
-        wc = p if os.path.exists(p) else None
+        b = os.path.join(project, "bin", "whisper.cpp", "build", "bin")
+        wc = next((p for p in (os.path.join(b, "whisper-cli"), os.path.join(b, "Release", "whisper-cli.exe"),
+                               os.path.join(b, "whisper-cli.exe")) if os.path.exists(p)), None)
     wc = wc or os.environ.get("WHISPER_CLI") or shutil.which("whisper-cli")
     add("reel", "transcriber", fw or wc, ("whisper.cpp" if wc else "") + (" + " if wc and fw else "") + ("faster-whisper" if fw else "") or "none",
         setup or (pip_cmd(["faster-whisper"]) + "   (or, in a reel project: bash run.sh setup)"))

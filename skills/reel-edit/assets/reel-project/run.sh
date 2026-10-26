@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Everything that has to run on your own computer, as one short command each.
 # Claude (in the Claude app or Claude Code) writes the edit; you paste one of these into Terminal when asked.
+# macOS and Linux: Terminal. Windows: Git Bash (comes with Git for Windows) or WSL.
 #
 #   bash run.sh setup                          once per machine/project: tools, packages, whisper + model, self-test
 #   bash run.sh assemble <clips...> --out <take.mp4> [--jumpcuts]   several clips -> one take (+ cuts, words)
@@ -18,6 +19,7 @@ set -uo pipefail
 cd "$(dirname "$0")"
 ROOT=$(pwd)
 OS=$(uname -s)
+case "$OS" in MINGW*|MSYS*|CYGWIN*) OS=Windows ;; esac
 FAILS=0
 
 say_step() { printf "  %-44s" "$1"; }
@@ -25,11 +27,35 @@ ok() { echo "ok${1:+  ($1)}"; }
 fail() { echo "FAIL: $1"; FAILS=$((FAILS + 1)); }
 have() { command -v "$1" >/dev/null 2>&1; }
 
+base_python() {   # python3 on macOS/Linux; on Windows often only "python" (and python3 may be a Store stub)
+  local c
+  for c in python3 python; do
+    if have "$c" && "$c" -c 'import sys; sys.exit(sys.version_info < (3, 9))' >/dev/null 2>&1; then echo "$c"; return 0; fi
+  done
+  return 1
+}
+venv_python() {   # the venv's python: .venv/bin/python, or .venv/Scripts/python.exe on Windows
+  local p
+  for p in "$ROOT/.venv/bin/python" "$ROOT/.venv/Scripts/python.exe"; do [ -x "$p" ] && { echo "$p"; return 0; }; done
+  return 1
+}
 py() {   # the project's own Python (a venv, so it never fights the system Python)
-  if [ -x "$ROOT/.venv/bin/python" ]; then "$ROOT/.venv/bin/python" "$@"; else python3 "$@"; fi
+  local v; v=$(venv_python) || v=$(base_python) || { echo "FAIL: no Python 3 found (run: bash run.sh setup)"; return 1; }
+  "$v" "$@"
+}
+hint() {   # $1 = macOS, $2 = Linux, $3 = Windows
+  case "$OS" in Darwin) echo "$1" ;; Windows) echo "$3" ;; *) echo "$2" ;; esac
+}
+WHISPER_BIN=bin/whisper.cpp/build/bin
+whisper_cli() {
+  local p
+  for p in "$WHISPER_BIN/whisper-cli" "$WHISPER_BIN/Release/whisper-cli.exe" "$WHISPER_BIN/whisper-cli.exe"; do
+    [ -x "$p" ] && { echo "$p"; return 0; }
+  done
+  return 1
 }
 
-need_brew_pkg() {   # $1 = command, $2 = brew package, $3 = apt package
+need_brew_pkg() {   # $1 = command, $2 = brew package
   if have "$1"; then return 0; fi
   if [ "$OS" = "Darwin" ] && have brew; then brew install "$2" >/dev/null 2>&1 && have "$1" && return 0; fi
   return 1
@@ -40,11 +66,11 @@ setup() {
 
   say_step "ffmpeg"
   if need_brew_pkg ffmpeg ffmpeg; then ok "$(ffmpeg -version | head -1 | awk '{print $3}')"
-  else fail "install it: brew install ffmpeg  (Linux: sudo apt install ffmpeg)"; fi
+  else fail "install it: $(hint 'brew install ffmpeg' 'sudo apt install ffmpeg' 'winget install Gyan.FFmpeg, then reopen Git Bash')"; fi
 
   say_step "Node.js 18+"
   if have node && [ "$(node -p 'process.versions.node.split(".")[0]')" -ge 18 ]; then ok "$(node -v)"
-  else fail "install Node 18+: brew install node  (or https://nodejs.org)"; fi
+  else fail "install Node 18+: $(hint 'brew install node' 'https://nodejs.org (or your package manager)' 'winget install OpenJS.NodeJS.LTS, then reopen Git Bash')"; fi
 
   say_step "npm packages (Remotion)"
   if [ -d node_modules/remotion ] || npm install --no-audit --no-fund --loglevel=error >/tmp/vs-npm.log 2>&1; then
@@ -56,26 +82,38 @@ setup() {
   else fail "could not download it, see /tmp/vs-browser.log (renders can use --browser-executable=<Chrome>)"; fi
 
   say_step "Python 3 + venv (numpy, pillow, opencv)"
-  if have python3 && { [ -x .venv/bin/python ] || python3 -m venv .venv >/dev/null 2>&1; } \
-     && .venv/bin/python -m pip install -q --disable-pip-version-check numpy pillow "opencv-python-headless<5" >/tmp/vs-pip.log 2>&1; then ok
-  else fail "need python3 with venv (brew install python), see /tmp/vs-pip.log"; fi
+  local bp vp
+  if bp=$(base_python) && { vp=$(venv_python) || { "$bp" -m venv .venv >/dev/null 2>&1 && vp=$(venv_python); }; } \
+     && "$vp" -m pip install -q --disable-pip-version-check numpy pillow "opencv-python-headless<5" >/tmp/vs-pip.log 2>&1; then ok
+  else fail "need Python 3.9+ with venv: $(hint 'brew install python' 'sudo apt install python3-venv' 'winget install Python.Python.3.12, then reopen Git Bash'), see /tmp/vs-pip.log"; fi
 
+  # Speech to text: whisper.cpp (most accurate timings). Windows without a C++ compiler, or any failed build,
+  # falls back to faster-whisper in the venv, so setup still finishes.
   say_step "cmake (to build whisper.cpp)"
-  if need_brew_pkg cmake cmake; then ok; else fail "install it: brew install cmake  (Linux: sudo apt install cmake build-essential)"; fi
+  local have_cmake=1
+  if need_brew_pkg cmake cmake; then ok
+  elif [ "$OS" = "Windows" ]; then have_cmake=0; ok "not found, using faster-whisper instead"
+  else fail "install it: $(hint 'brew install cmake' 'sudo apt install cmake build-essential' '')"; fi
 
-  say_step "whisper.cpp + base.en model"
-  if [ -x bin/whisper.cpp/build/bin/whisper-cli ] && [ -f bin/whisper.cpp/models/ggml-base.en.bin ]; then ok "already built"
-  elif MODELS="${MODELS:-base.en}" bash scripts/setup-whisper.sh >/tmp/vs-whisper.log 2>&1; then ok
-  else fail "build or model download failed, see /tmp/vs-whisper.log"; fi
+  say_step "speech to text (whisper)"
+  if whisper_cli >/dev/null && [ -f bin/whisper.cpp/models/ggml-base.en.bin ]; then ok "whisper.cpp, already built"
+  elif [ "$have_cmake" = 1 ] && MODELS="${MODELS:-base.en}" bash scripts/setup-whisper.sh >/tmp/vs-whisper.log 2>&1; then ok "whisper.cpp + base.en"
+  elif py -m pip install -q --disable-pip-version-check faster-whisper >>/tmp/vs-pip.log 2>&1; then
+    ok "faster-whisper (whisper.cpp $( [ "$have_cmake" = 1 ] && echo "build failed, see /tmp/vs-whisper.log" || echo "skipped"))"
+  else fail "whisper.cpp and faster-whisper both failed, see /tmp/vs-whisper.log and /tmp/vs-pip.log"; fi
 
   say_step "transcription self-test"
   local sample=bin/whisper.cpp/samples/jfk.wav out
+  if [ ! -f "$sample" ]; then   # no whisper.cpp checkout (faster-whisper only): fetch just the sample
+    mkdir -p "$(dirname "$sample")"
+    curl -fsSL -o "$sample" https://raw.githubusercontent.com/ggml-org/whisper.cpp/master/samples/jfk.wav 2>/dev/null || rm -f "$sample"
+  fi
   if [ -f "$sample" ]; then
     out=$(mktemp -d)/jfk.words.json
     if py scripts/transcribe.py "$sample" "$out" >/dev/null 2>&1; then
       ok "heard: $(py -c "import json,sys; print(' '.join(w['text'] for w in json.load(open(sys.argv[1]))[:6]))" "$out")..."
     else fail "transcribe.py could not read the sample"; fi
-  else fail "no whisper.cpp sample to test with (setup-whisper.sh did not finish)"; fi
+  else fail "could not get the test sample (no internet?); try: bash run.sh transcribe <your clip>"; fi
 
   mkdir -p "public/recordings" "public/screen-recordings" "public/images" "public/music pack" "public/sound pack" out brand
   echo
@@ -125,7 +163,8 @@ render() {
   local start=$SECONDS
   if npx remotion render src/index.ts "$comp" "$out" --codec=h264 --crf=17 --concurrency=75% --log=error "$@"; then
     echo "done: $out ($((SECONDS - start)) s)"
-    [ "$OS" = "Darwin" ] && open -R "$out" 2>/dev/null || true
+    case "$OS" in Darwin) open -R "$out" 2>/dev/null ;; Windows) explorer.exe /select,"$(cygpath -w "$out" 2>/dev/null || echo "$out")" >/dev/null 2>&1 ;; esac
+    true
   else
     echo "FAIL: render of $comp did not finish. Paste the output above to Claude."; return 1
   fi

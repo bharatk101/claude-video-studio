@@ -44,6 +44,7 @@ one line that has to run on your computer); they're listed here so you know what
 | --- | --- |
 | `bash run.sh setup` | once: ffmpeg, npm packages, whisper.cpp + model, Remotion's browser, a self-test |
 | `bash run.sh assemble raw/*.MOV --out public/recordings/reel.mp4 --jumpcuts` | several clips joined into one take, pauses cut |
+| `bash run.sh assemble public/recordings/coffee-reel --order time --out ...` | every video in a folder, in recording order |
 | `bash run.sh transcribe public/recordings/take.mp4` | word-level transcript next to the take |
 | `bash run.sh cuts public/recordings/take.mp4` | cuts in frames + contact sheets |
 | `bash run.sh framing public/recordings/take.mp4` | head top, eye line, mouth, chin per shot + caption/hook suggestions |
@@ -116,4 +117,5 @@ tests fail when one drifts.
   sandbox usually can't download a speech model, so captions from your own voice are transcribed on your computer.
 - Uploads from a linked folder are capped at about 400 MB per file: long 4K clips are better recorded at 1080p, or
   assembled on your computer with `bash run.sh assemble`.
-- `run.sh` is a bash script: on Windows, run it from Git Bash or WSL.
+- `run.sh` is a bash script: on Windows, run it from Git Bash or WSL. Without Visual Studio Build Tools, setup uses
+  faster-whisper instead of building whisper.cpp. See [prompts](prompts.md#set-up-a-project) for paths per OS.

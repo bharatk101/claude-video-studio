@@ -54,6 +54,20 @@ cp -r ${CLAUDE_SKILL_DIR}/assets/reel-project ./my-reels && cd my-reels
 bash run.sh setup      # ffmpeg, Node, npm packages, whisper.cpp + model, Remotion's browser, a self-test
 ```
 
+**Where it goes.** Use the folder the creator names, exactly; any path works (another drive, Dropbox, a folder
+with spaces). If they name none, suggest their OS's videos folder: `~/Movies/reels` on macOS, `~/Videos/reels`
+on Linux, `C:\Users\<you>\Videos\reels` on Windows. Copy the template's *contents* into that folder (it may already
+exist and hold their clips; never overwrite their files). The setup line you hand off is always
+`cd <folder> && bash run.sh setup`, written for the shell they'll paste it into:
+
+| Their OS | Shell | Folder as written in the line |
+|---|---|---|
+| macOS / Linux | Terminal | `~/Movies/reels`, `~/"My Videos"/reels` (quote the part with spaces) |
+| Windows | **Git Bash** (or WSL), never PowerShell or cmd | `C:\Users\Asha\Videos\reels` → `~/Videos/reels`; `D:\Reels` → `/d/Reels` (WSL: `/mnt/d/Reels`) |
+
+On Windows, if they don't have Git Bash, point them to Git for Windows first. Setup prints the `winget` command
+for anything else missing, and uses faster-whisper when there's no C++ compiler for whisper.cpp.
+
 `run.sh` is the project's single entry point for anything that runs on the creator's machine:
 `setup`, `assemble <clips> --out <take>`, `transcribe <take>`, `cuts <take>`, `framing <take>`,
 `jumpcuts <take>`, `render <Comp> [out]`, `check <Comp> <from-to>`, `studio`, `doctor`. Each step prints `ok` or
@@ -119,7 +133,22 @@ everything after this step then treats the result as one take:
 ```bash
 python3 ${CLAUDE_SKILL_DIR}/scripts/assemble.py public/recordings/raw/*.MOV --order time --jumpcuts \
   --out public/recordings/reel.mp4          # or: bash run.sh assemble ... in the project
+python3 ${CLAUDE_SKILL_DIR}/scripts/assemble.py public/recordings/coffee-reel --order time --out ...   # a folder
 ```
+
+How they pick the clips, and what to pass:
+
+| They say | Pass |
+|---|---|
+| file names ("join intro.MOV, take3.MOV and outro.mp4") | those files, in their order, `--order given` |
+| a folder ("everything in coffee-reel") | the folder: every video directly inside, by name; subfolders and non-video files skipped |
+| "all except take2" | list the folder, then pass every file but that one |
+| "in the order I filmed it" / "alphabetically" / "in this order: ..." | `--order time` / `--order name` / the files in that order with `--order given` |
+| "only from 0:12 in take4" | first cut a copy (`ffmpeg -ss 12 -i take4.MOV -c:v libx264 -crf 15 -c:a pcm_s16le $TMPDIR/take4.mov`), then pass the copy |
+| "cut the pauses" / "and the ums" / "just the ends" | `--jumpcuts` / `--jumpcuts --fillers` / `--trim-ends` |
+| "zoom on every other cut" / "crop on my face" / "keep the whole frame" | `--punch 1.1` / `--fit crop` / `--fit blur` |
+
+Not sure which file they mean (two `take1`s, a typo)? List the folder and ask.
 
 It turns every clip upright and into 1080x1920 at 30 fps (any size, frame rate, `.mov` or HEVC; landscape clips
 are cropped on the speaker's face, or fitted over a blurred copy when there's no face), gain-matches them to

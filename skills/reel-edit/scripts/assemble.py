@@ -3,6 +3,7 @@
 loudness, and join them into a single video that the rest of the reel workflow treats as one take.
 
     python3 assemble.py clip1.mp4 clip2.MOV clip3.mp4 --out public/recordings/reel.mp4
+    python3 assemble.py public/recordings/raw --order time --out public/recordings/reel.mp4    # a whole folder
     python3 assemble.py public/recordings/raw/*.MOV --order time --jumpcuts --fillers --punch 1.1 --out ...
     options: --order given|name|time   --fit auto|crop|blur   --trim-ends   --lufs -16   --min-pause 0.35
 
@@ -81,6 +82,34 @@ def loudness(path):
         return None
     v = float(m[-1])
     return None if v <= -69 else v
+
+
+VIDEO_EXTS = {".mp4", ".mov", ".m4v", ".mkv", ".webm", ".avi", ".mts"}
+
+
+def expand_inputs(items, out=None):
+    """Files stay as given; a folder becomes the videos directly inside it (by name, hidden files and the
+    output itself skipped). Returns absolute paths, de-duplicated, in order."""
+    clips = []
+    for it in items:
+        p = os.path.abspath(os.path.expanduser(it))
+        if os.path.isdir(p):
+            found = sorted((os.path.join(p, f) for f in os.listdir(p)
+                            if not f.startswith(".") and os.path.splitext(f)[1].lower() in VIDEO_EXTS
+                            and os.path.isfile(os.path.join(p, f))), key=lambda q: os.path.basename(q).lower())
+            found = [f for f in found if f != out]
+            if not found:
+                sys.exit(f"no videos in folder: {p}  (looked for {', '.join(sorted(VIDEO_EXTS))})")
+            clips += found
+        elif os.path.exists(p):
+            clips.append(p)
+        else:
+            sys.exit(f"no such file: {p}")
+    seen, uniq = set(), []
+    for c in clips:
+        if c not in seen:
+            seen.add(c); uniq.append(c)
+    return uniq
 
 
 def order_clips(paths, how):
@@ -165,7 +194,7 @@ def encode_segment(job):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("clips", nargs="+")
+    ap.add_argument("clips", nargs="+", help="video files, and/or folders (every video directly inside, by name)")
     ap.add_argument("--out", help="assembled take (default: assembled.mp4 next to the first clip)")
     ap.add_argument("--order", choices=["given", "name", "time"], default="given",
                     help="given (as listed), name (A-Z), time (recording time, then file time)")
@@ -180,11 +209,10 @@ def main():
     ap.add_argument("--jobs", type=int, default=min(4, os.cpu_count() or 2))
     a = ap.parse_args()
 
-    clips = [os.path.abspath(c) for c in a.clips]
-    for c in clips:
-        if not os.path.exists(c):
-            sys.exit(f"no such file: {c}")
-    out = os.path.abspath(a.out or os.path.join(os.path.dirname(clips[0]), "assembled.mp4"))
+    first = os.path.abspath(os.path.expanduser(a.clips[0]))
+    out = os.path.abspath(os.path.expanduser(a.out)) if a.out else \
+        os.path.join(first if os.path.isdir(first) else os.path.dirname(first), "assembled.mp4")
+    clips = expand_inputs(a.clips, out)
     if out in clips:
         sys.exit("--out can't be one of the input clips")
     stem = os.path.splitext(out)[0]

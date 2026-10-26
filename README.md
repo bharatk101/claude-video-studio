@@ -6,7 +6,7 @@
 A free plugin for the Claude app and Claude Code. No editor, no timeline.</p>
 
 <p align="center"><a href="https://github.com/bharatk101/claude-video-studio/actions/workflows/ci.yml"><img src="https://github.com/bharatk101/claude-video-studio/actions/workflows/ci.yml/badge.svg" alt="CI"></a><br>
-<a href="https://github.com/bharatk101/claude-video-studio/releases/latest">Latest release</a> · <a href="docs/guide.md">Guide</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="#roadmap">Roadmap</a></p>
+<a href="https://github.com/bharatk101/claude-video-studio/releases/latest">Latest release</a> · <a href="docs/prompts.md">Prompts</a> · <a href="docs/guide.md">Guide</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="#roadmap">Roadmap</a></p>
 
 ---
 
@@ -27,21 +27,28 @@ Capabilities > Create and edit files**.)
 
 > Set up a reel project in ~/Movies/reels
 
-Claude creates the project and gives you **one line** to paste into Terminal, which installs and checks
-everything, ending in `ok` or `FAIL` for each step:
+Claude creates the project and gives you **one line** to paste, which installs and checks everything, ending in
+`ok` or `FAIL` for each step:
 
-```bash
-cd ~/Movies/reels && bash run.sh setup
-```
+| | Say | Paste |
+|---|---|---|
+| macOS | Set up a reel project in `~/Movies/reels` | `cd ~/Movies/reels && bash run.sh setup` (Terminal) |
+| Windows | Set up a reel project in `C:\Users\you\Videos\reels` | `cd ~/Videos/reels && bash run.sh setup` ([Git Bash](https://git-scm.com/download/win)) |
+| Linux | Set up a reel project in `~/Videos/reels` | `cd ~/Videos/reels && bash run.sh setup` |
+| Your own folder | Set up a reel project in `~/Dropbox/Shorts` (any path, any drive) | the line Claude gives you |
 
-**3. Add your footage.** Drop your clips into `public/recordings/`.
+**3. Add your footage.** Drop your clips into `public/recordings/`, or a folder of their own inside it.
 
-**4. Ask for the edit.**
+**4. Ask for the edit.** Pick the clips by name, or point at a folder:
 
-> Join my clips, cut the pauses and the ums, add captions and a hook that says "how I edit without an editor"
+> Join intro.MOV, take3.MOV and outro.mp4 in that order, cut the pauses and the ums, add captions and a hook
+> that says "how I edit without an editor"
+
+> Join everything in public/recordings/coffee-reel in the order I filmed it, cut the pauses and add captions
 
 The finished video lands in `out/`. Notes like *"captions are a bit late at 0:12"* or *"make the hook shorter"*
-work the same way.
+work the same way. **[More prompts to copy](docs/prompts.md)**: picking clips, ordering, zooms, music, and notes
+after the first cut.
 
 <p align="center">
 <img src="docs/images/reel-example.jpg" width="480" alt="A reel with a text hook and captions"><br>

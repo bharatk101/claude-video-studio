@@ -213,6 +213,20 @@ def assemble_mixed_clips():
 
 
 @test
+def assemble_takes_a_folder():
+    import importlib.util
+    d = os.path.join(TMP, "folder-in"); os.makedirs(os.path.join(d, "sub"), exist_ok=True)
+    for f in ("b_take2.MOV", "a_take1.mp4", "c.MKV", "notes.txt", ".hidden.mp4", "sub/x.mp4", "music.wav", "reel.mp4"):
+        open(os.path.join(d, f), "w").close()
+    spec = importlib.util.spec_from_file_location("assemble", os.path.join(RE, "assemble.py"))
+    m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+    got = [os.path.basename(p) for p in m.expand_inputs([d], out=os.path.join(d, "reel.mp4"))]
+    assert got == ["a_take1.mp4", "b_take2.MOV", "c.MKV"], got           # videos directly inside, by name
+    mixed = m.expand_inputs([os.path.join(d, "c.MKV"), d], out=None)    # a file, then its folder: no duplicates
+    assert [os.path.basename(p) for p in mixed] == ["c.MKV", "a_take1.mp4", "b_take2.MOV", "reel.mp4"], mixed
+
+
+@test
 def run_sh_parses_and_helps():
     if os.name == "nt":
         return

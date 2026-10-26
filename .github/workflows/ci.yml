@@ -79,8 +79,7 @@ jobs:
           npx remotion render src/index.ts Example out/example.mp4 --frames=0-59 --concurrency=75% --log=error
           python "$GITHUB_WORKSPACE/skills/reel-edit/scripts/detect-cuts.py" out/example.mp4 --fps 30 --no-sheets
 
-      - name: run.sh setup + real transcription (macOS, Linux)
-        if: runner.os != 'Windows'
+      - name: run.sh setup + real transcription (Windows runs it in Git Bash)
         run: |
           cp -r skills/reel-edit/assets/reel-project "$RUNNER_TEMP/runsh"
           cd "$RUNNER_TEMP/runsh"
@@ -91,6 +90,9 @@ jobs:
           python -c "import json; w=json.load(open('bin/whisper.cpp/samples/jfk.words.json')); assert len(w) > 15 and w[0]['startMs'] < 1500, w[:3]; print(len(w), 'words, first:', w[0])"
           bash run.sh render Example --frames=0-29
           test -s out/Example.mp4
+          mkdir -p public/recordings/raw && cp out/Example.mp4 public/recordings/raw/one.mp4 && cp out/Example.mp4 public/recordings/raw/two.mp4
+          bash run.sh assemble public/recordings/raw --out public/recordings/reel.mp4   # a whole folder
+          test -s public/recordings/reel.mp4
 
       - name: Upload renders
         if: always()

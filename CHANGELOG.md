@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.6.1 (2026-10-26)
+
+Prompts to copy, any folder on any OS.
+
+- **[docs/prompts.md](docs/prompts.md):** what to say to Claude, from setting up a project (macOS, Windows,
+  Linux, or any folder you choose) to joining clips picked by file name or as a whole folder, the options you
+  can add, and notes after the first cut. The README's quick start shows both ways to pick clips.
+- **Join a whole folder:** `bash run.sh assemble public/recordings/coffee-reel --order time --out ...` takes every
+  video directly inside the folder (`.mov`, `.mp4`, `.m4v`, `.mkv`, `.webm`, ...), skipping subfolders, other
+  files and the output itself. Files and folders can be mixed; duplicates are dropped.
+- **Windows:** `bash run.sh setup` works in Git Bash. It finds Python as `python` or `python3`, uses the venv's
+  `Scripts\python.exe`, finds the Windows whisper.cpp build, prints `winget` commands for anything missing, and
+  falls back to faster-whisper when there's no C++ compiler. CI now runs the full setup, a real transcription,
+  a render and a folder join on Windows as well as macOS and Linux.
+- The reel skill knows where a project can go (each OS's default, or any path the creator names) and how to
+  write that path in the setup line for their shell.
+
 ## 0.6.0 (2026-10-26)
 
 First public release: edit reels by talking to Claude.

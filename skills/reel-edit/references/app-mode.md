@@ -57,7 +57,8 @@ pasted, or with no way to tell whether they worked. The rules:
    ```
 
 2. **One short line.** Every step is a `run.sh` subcommand, so there's never a multi-line script to paste.
-   Always start with `cd <their folder> &&` because Terminal opens in their home folder.
+   Always start with `cd <their folder> &&` because Terminal opens in their home folder. On Windows the line is
+   for Git Bash, so write the folder its way (`~/Videos/reels`, `/d/Reels`); SKILL.md section 0 has the table.
 3. Say **how long** it takes and **what success looks like** ("about 5 minutes; it ends with *All set.*").
    Every `run.sh` step prints `ok` or `FAIL: <reason>`; ask them to paste the output back if anything fails.
 4. **Don't claim it's done until you've checked.** When they say it finished, look: `device_list_dir` on
