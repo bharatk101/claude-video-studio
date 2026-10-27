@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **Automatic video length** (roadmap 1.1): the starter reel reads its length from the footage with Remotion's
+  `calculateMetadata` and `@remotion/media-parser`, or from the transcript when there's no footage yet, so a
+  re-cut or trimmed take never ends on black frames or loses its last word. `durationInFrames` in the props
+  overrides it. The skill now registers every new reel this way instead of setting lengths by hand.
+
 ## 0.6.2 (2026-10-26)
 
 Windows setup is a double-click.

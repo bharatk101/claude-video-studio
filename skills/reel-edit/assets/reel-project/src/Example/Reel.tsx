@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
-import { AbsoluteFill, OffthreadVideo, Sequence, interpolate, staticFile, useCurrentFrame } from "remotion";
+import { AbsoluteFill, OffthreadVideo, Sequence, interpolate, staticFile, useCurrentFrame, type CalculateMetadataFunction } from "remotion";
+import { parseMedia } from "@remotion/media-parser";
 import { Caption } from "../shared/Caption";
 import { TextHook } from "../shared/TextHook";
 import { buildChunks, casualCase, chunkAt, cleanWords, hardCuts, type Word } from "../shared/captions";
@@ -14,6 +15,21 @@ export type ReelProps = {
   cuts?: number[]; //         the take's own cut frames (scene detection, see the skill)
   captionY?: number; //       caption baseline, measured per take (on the mic windscreen / under the chin)
   hook?: { lines: string[]; widths: number[]; top: number; until: number };
+  durationInFrames?: number; // optional override; otherwise calculateReelMetadata measures it
+};
+
+// The reel's length comes from the footage itself: with `src`, exactly the take's length (a re-cut or trimmed take
+// can never leave black frames or chop the ending); without footage, the transcript plus a short tail.
+// `durationInFrames` in the props overrides both (e.g. to end on a held frame).
+export const calculateReelMetadata: CalculateMetadataFunction<ReelProps> = async ({ props }) => {
+  const fps = 30;
+  if (props.durationInFrames) return { durationInFrames: props.durationInFrames, fps };
+  if (props.src) {
+    const m = await parseMedia({ src: staticFile(props.src), fields: { slowDurationInSeconds: true } });
+    return { durationInFrames: Math.max(1, Math.floor(m.slowDurationInSeconds * fps)), fps };
+  }
+  const lastMs = props.words.length ? props.words[props.words.length - 1].endMs : 3000;
+  return { durationInFrames: Math.ceil(((lastMs + 800) / 1000) * fps), fps };
 };
 
 const Placeholder: React.FC = () => {

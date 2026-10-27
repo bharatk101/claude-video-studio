@@ -1,6 +1,6 @@
 import React from "react";
 import { Composition } from "remotion";
-import { Reel, type ReelProps } from "./Example/Reel";
+import { Reel, calculateReelMetadata, type ReelProps } from "./Example/Reel";
 import sample from "./Example/sample.words.json";
 import type { Word } from "./shared/captions";
 import { TextHook } from "./shared/TextHook";
@@ -9,7 +9,6 @@ import { TextHook } from "./shared/TextHook";
 // Never edit a composition that's already approved to serve a new video; copy it or parameterise it.
 const FPS = 30;
 const words = sample as Word[];
-const lastMs = words.length ? words[words.length - 1].endMs : 3000;
 
 export const RemotionRoot: React.FC = () => (
   <>
@@ -19,7 +18,8 @@ export const RemotionRoot: React.FC = () => (
       width={1080}
       height={1920}
       fps={FPS}
-      durationInFrames={Math.ceil(((lastMs + 800) / 1000) * FPS)}
+      durationInFrames={1} // placeholder: calculateReelMetadata sets the real length from the footage
+      calculateMetadata={calculateReelMetadata}
       defaultProps={{
         words,
         captionY: 1380,

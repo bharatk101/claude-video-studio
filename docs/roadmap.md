@@ -19,7 +19,7 @@ audio, bundled fonts. The measuring happens before Remotion, in Python. These it
 
 | | Item | What changes for you | Built on | Size |
 |---|---|---|---|---|
-| 1.1 | **Automatic video length** | A reel's length is read from the take itself, so a trimmed or re-cut take never leaves black frames at the end | [`calculateMetadata`](https://www.remotion.dev/docs/calculate-metadata) | S |
+| 1.1 | ✅ **Automatic video length** | A reel's length is read from the take itself, so a trimmed or re-cut take never leaves black frames at the end | [`calculateMetadata`](https://www.remotion.dev/docs/calculate-metadata) | S |
 | 1.2 | **Transitions between clips and sections** | "Fade between my clips" or "slide to the next point" just works, without hand-built animation | [`@remotion/transitions`](https://www.remotion.dev/docs/transitions) (`TransitionSeries`) | S |
 | 1.3 | **Drag to adjust in the preview** | Open the preview (`bash run.sh studio`) and drag a caption, hook or sticker into place; the change is written back to the code | [Studio interactivity](https://www.remotion.dev/docs/studio/interactivity) (Remotion 4.0.475+) | M |
 | 1.4 | **Remotion's official skills as companions** | Claude follows Remotion's own guidance for rendering, captions, upgrades and docs lookups, alongside this skill's reel rules | [`remotion-dev/skills`](https://www.remotion.dev/docs/ai/skills) | S |

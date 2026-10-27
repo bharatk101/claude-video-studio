@@ -260,6 +260,13 @@ belongs to the creator. No sheet yet: ask to set one up
 (`references/brand-sheet.md`), never borrow another creator's. Brand deals
 use the partner's palette instead.
 
+**Never hand-set a reel's length.** Register each composition with `calculateMetadata={calculateReelMetadata}`
+(from `src/Example/Reel.tsx`, as `Root.tsx` does for Example): it reads the length from the footage
+(`@remotion/media-parser`), or from the transcript when there's no footage yet, so a re-cut, trimmed or assembled
+take never ends on black frames or loses its last word. Pass `durationInFrames` in the props only to override it
+on purpose (e.g. holding the last frame under an end card). For a jump-cut take, point `src` at the cut render, or
+override with the keep-list's total frames.
+
 See the references for the detailed conventions:
 
 - `references/brand-sheet.md` — where the creator's look lives (`brand/BRAND.md`), what it
