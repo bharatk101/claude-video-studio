@@ -6,7 +6,7 @@
 A free plugin for the Claude app and Claude Code. No editor, no timeline.</p>
 
 <p align="center"><a href="https://github.com/bharatk101/claude-video-studio/actions/workflows/ci.yml"><img src="https://github.com/bharatk101/claude-video-studio/actions/workflows/ci.yml/badge.svg" alt="CI"></a><br>
-<a href="https://github.com/bharatk101/claude-video-studio/releases/latest">Latest release</a> · <a href="docs/prompts.md">Prompts</a> · <a href="docs/guide.md">Guide</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="#roadmap">Roadmap</a></p>
+<a href="https://github.com/bharatk101/claude-video-studio/releases/latest">Latest release</a> · <a href="docs/prompts.md">Prompts</a> · <a href="docs/guide.md">Guide</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="docs/roadmap.md">Roadmap</a></p>
 
 ---
 
@@ -82,16 +82,18 @@ things up by hand.
 
 ## Roadmap
 
-What's done is in the [changelog](CHANGELOG.md). Next, roughly in order (contributions welcome: open an issue to
-pick one up):
+The [full roadmap](docs/roadmap.md) has every item, its size, and what it builds on. In short:
 
-- [ ] Find a handheld mic automatically, so captions sit on it without measuring
-- [ ] A sample clip in the repo, to try the whole reel workflow in a minute
-- [ ] Auto-reframe 16:9 footage to 9:16 by following the speaker's face
-- [ ] Captions in other languages and scripts (Hindi, Kannada, and more)
-- [ ] Export the edit to Premiere / DaVinci Resolve for hand touch-ups
-- [ ] Thumbnails and covers from the same brand sheet
-- [ ] Publish straight to Instagram, TikTok and YouTube with a caption
+1. **Use Remotion fully (0.7):** automatic video length, transitions, drag captions into place in the preview,
+   music that ducks under your voice, and Remotion's own [agent skills](https://www.remotion.dev/docs/ai/skills)
+   as companions.
+2. **HyperFrames as a companion (0.8):** [HyperFrames'](https://github.com/heygen-com/hyperframes) 450 ready-made
+   effects, free music and SFX, brand from Figma, and a study of a licence-free render path for companies.
+3. **Better edits, faster (0.9):** a seconds-fast quick mode, auto-reframe, mic detection, Hindi and Kannada
+   captions, a sample clip.
+4. **After the edit (1.0):** export to Premiere / DaVinci, thumbnails, and publishing to Instagram and more.
+
+Contributions welcome: open an issue to pick up an item.
 
 ## Contributing
 
