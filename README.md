@@ -64,6 +64,7 @@ after the first cut.
 
 - **Several clips into one video:** any phone format, turned upright, sized for Reels, matched in volume, joined.
 - **Jump cuts:** pauses and filler words removed, never mid-word.
+- **Transitions:** fade, slide or wipe between clips or points, without your words being cut or talked over.
 - **Captions that land on the exact frame** you say each word, placed around your face, never on your chin.
 - **Hooks, layouts and motion graphics** in your own brand style, plus screen recordings with smooth zooms.
 - **Music and sound effects**, checked in the final render.
@@ -84,7 +85,7 @@ things up by hand.
 
 The [full roadmap](docs/roadmap.md) has every item, its size, and what it builds on. In short:
 
-1. **Use Remotion fully (0.7):** automatic video length, transitions, drag captions into place in the preview,
+1. **Use Remotion fully (0.7):** ~~automatic video length~~ and ~~transitions~~ (done), drag captions into place in the preview,
    music that ducks under your voice, and Remotion's own [agent skills](https://www.remotion.dev/docs/ai/skills)
    as companions.
 2. **HyperFrames as a companion (0.8):** [HyperFrames'](https://github.com/heygen-com/hyperframes) 450 ready-made

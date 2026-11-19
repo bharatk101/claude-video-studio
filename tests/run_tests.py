@@ -275,5 +275,19 @@ def skills_are_self_contained():
         assert not os.path.exists(os.path.join(ROOT, gone)), f"{gone}/ at the plugin root isn't available in chat"
 
 
+@test
+def transition_plan_known_answers():
+    """components/transition-plan.ts: hold keeps the take's length, overlap shortens it and re-times words, joins
+    inside a word or speech under an overlap are flagged. Needs Node 22.6+ (runs TypeScript directly)."""
+    import re
+    v = sh("node", "--version").stdout.strip()
+    major, minor = (int(x) for x in re.match(r"v(\d+)\.(\d+)", v).groups())
+    if (major, minor) < (22, 6):
+        print(f"      (skipped: node {v} can't run TypeScript directly)")
+        return
+    r = sh("node", "--experimental-strip-types", "--no-warnings", os.path.join(ROOT, "tests", "transition_plan_check.ts"))
+    assert "transition plan ok" in r.stdout, r.stdout + r.stderr
+
+
 print(f"\n{len(passed)} passed, {len(failed)} failed  ({TMP})")
 sys.exit(1 if failed else 0)

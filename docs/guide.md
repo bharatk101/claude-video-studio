@@ -18,6 +18,9 @@ the skills and does it.
   face (or fitted over a blurred copy when there's no face).
 - **Jump cuts:** pauses, and if you like every "um" and "uh", removed automatically, never mid-word, with an
   optional punch-in on every other cut. Captions follow the edited timeline.
+- **Transitions:** fade, slide, wipe, flip, push-cut, iris or clock-wipe between your clips or before a new point.
+  By default the outgoing shot holds its last frame while the next plays in, so the reel keeps its exact length
+  and nothing you say is cut or talked over. For b-roll montages, an overlap mode crossfades picture and sound.
 - **Captions that land on the word:** 1–3 word chunks in the TikTok outlined style, never held through pauses,
   never across a cut, black-on-white automatically over light backgrounds. If they drift, a re-timing pass votes
   word times across overlapping windows to fix them.
@@ -62,7 +65,7 @@ Every step prints `ok` or `FAIL: <reason>`. To start a project by hand:
 | --- | --- | --- | --- |
 | How | Claude runs everything on your machine | Claude edits files in your linked folder and renders in its cloud workspace | You attach files, Claude sends the video back |
 | Your Terminal | not needed | `bash run.sh setup` once, `bash run.sh transcribe` per take | not needed |
-| Join clips, jump cuts | ✓ | ✓ | ✓ (attach the clips) |
+| Join clips, jump cuts, transitions | ✓ | ✓ | ✓ (attach the clips) |
 | Reel editing with captions | ✓ | ✓ | ✓ with a transcript (made on your computer: `run.sh transcribe`) |
 
 **From the Claude app:** link your project folder (the **+** menu next to the message box, **Add folder**) and ask
@@ -97,8 +100,8 @@ claude-video-studio/
 ├── .github/workflows/       CI (tests, renders and a real transcription on macOS, Linux, Windows); releases
 ├── skills/reel-edit/        the skill: SKILL.md, references/, components/, scripts/ (incl. doctor.py, the setup
 │                            checker), assets/reel-project (the starter project)
-├── tests/run_tests.py       tests with known answers (cuts, framing, jump cuts, joining clips, camera, doctor,
-│                            run.sh, self-contained skill)
+├── tests/run_tests.py       tests with known answers (cuts, framing, jump cuts, joining clips, transitions,
+│                            camera, doctor, run.sh, self-contained skill)
 ├── tools/                   sync.py (keeps the starter project's copies in step), build_zip.py (the release zip)
 └── docs/                    this guide and the README's images
 ```

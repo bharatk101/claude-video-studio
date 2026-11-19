@@ -4,6 +4,8 @@ import { parseMedia } from "@remotion/media-parser";
 import { Caption } from "../shared/Caption";
 import { TextHook } from "../shared/TextHook";
 import { buildChunks, casualCase, chunkAt, cleanWords, hardCuts, type Word } from "../shared/captions";
+import { TakeWithTransitions } from "../shared/Transitions";
+import { joinCuts, planTransitions, retimeFrame, retimeWords, type Join, type TransitionPlan } from "../shared/transition-plan";
 
 // The starter reel: a talking-head take, a text hook from frame 0, and outlined captions timed to the transcript.
 // Copy this folder per video (src/<Video>/) and register it in Root.tsx. With no `src` it renders a placeholder
@@ -16,18 +18,28 @@ export type ReelProps = {
   captionY?: number; //       caption baseline, measured per take (on the mic windscreen / under the chin)
   hook?: { lines: string[]; widths: number[]; top: number; until: number };
   durationInFrames?: number; // optional override; otherwise calculateReelMetadata measures it
+  transitions?: Join[]; //    transitions between clips/sections, at TAKE frames (see shared/transition-plan.ts)
+  transitionPlan?: TransitionPlan; // filled in by calculateReelMetadata; don't set by hand
 };
 
 // The reel's length comes from the footage itself: with `src`, exactly the take's length (a re-cut or trimmed take
 // can never leave black frames or chop the ending); without footage, the transcript plus a short tail.
-// `durationInFrames` in the props overrides both (e.g. to end on a held frame).
+// `durationInFrames` in the props overrides both (e.g. to end on a held frame). With `transitions`, it also plans
+// them against the take and the transcript: "overlap" transitions shorten the reel, problems stop the render.
 export const calculateReelMetadata: CalculateMetadataFunction<ReelProps> = async ({ props }) => {
   const fps = 30;
-  if (props.durationInFrames) return { durationInFrames: props.durationInFrames, fps };
   if (props.src) {
     const m = await parseMedia({ src: staticFile(props.src), fields: { slowDurationInSeconds: true } });
-    return { durationInFrames: Math.max(1, Math.floor(m.slowDurationInSeconds * fps)), fps };
+    const takeFrames = Math.max(1, Math.floor(m.slowDurationInSeconds * fps));
+    if (props.transitions?.length) {
+      const plan = planTransitions(props.transitions, takeFrames, { words: props.words, fps });
+      if (plan.problems.length) throw new Error("Transitions can't render as planned:\n  " + plan.problems.join("\n  "));
+      plan.warnings.forEach((w) => console.warn("transitions: " + w));
+      return { durationInFrames: props.durationInFrames ?? plan.outFrames, fps, props: { ...props, transitionPlan: plan } };
+    }
+    return { durationInFrames: props.durationInFrames ?? takeFrames, fps };
   }
+  if (props.durationInFrames) return { durationInFrames: props.durationInFrames, fps };
   const lastMs = props.words.length ? props.words[props.words.length - 1].endMs : 3000;
   return { durationInFrames: Math.ceil(((lastMs + 800) / 1000) * fps), fps };
 };
@@ -44,15 +56,23 @@ const Placeholder: React.FC = () => {
   );
 };
 
-export const Reel: React.FC<ReelProps> = ({ src, words, cuts = [], captionY = 1380, hook }) => {
+export const Reel: React.FC<ReelProps> = ({ src, words: takeWords, cuts: takeCuts = [], captionY = 1380, hook, transitionPlan: plan }) => {
   const frame = useCurrentFrame();
+  // With transitions, captions follow the reel's timeline: re-timed words, and a break at every join.
+  const words = useMemo(() => (plan ? retimeWords(takeWords, plan) : takeWords), [takeWords, plan]);
+  const cuts = useMemo(
+    () => (plan ? [...new Set([...takeCuts.map((f) => retimeFrame(f, plan)), ...joinCuts(plan)])].sort((a, b) => a - b) : takeCuts),
+    [takeCuts, plan],
+  );
   const chunks = useMemo(() => buildChunks(cleanWords(words).map((w) => casualCase(w)), { cuts }), [words, cuts]);
   const hard = useMemo(() => hardCuts(cuts, chunks), [cuts, chunks]);
   const cur = chunkAt(chunks, frame, hard);
 
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      {src ? (
+      {src && plan ? (
+        <TakeWithTransitions src={src} plan={plan} />
+      ) : src ? (
         <AbsoluteFill>
           <OffthreadVideo src={staticFile(src)} />
         </AbsoluteFill>

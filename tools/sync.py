@@ -17,7 +17,7 @@ TEMPLATE = f"{RE}/assets/reel-project"
 COPIES = {f"{RE}/scripts/doctor.py": [f"{TEMPLATE}/scripts/doctor.py"]}      # one checker: run.sh doctor runs it
 for s in ("assemble.py", "detect-cuts.py", "jump-cuts.py", "measure-framing.py"):
     COPIES[f"{RE}/scripts/{s}"] = [f"{TEMPLATE}/scripts/{s}"]                 # run.sh runs these in the project
-for c in ("Caption.tsx", "TextHook.tsx", "TwoThirdsPanel.tsx", "Silhouette.tsx", "JumpCut.tsx", "fonts.ts"):
+for c in ("Caption.tsx", "TextHook.tsx", "TwoThirdsPanel.tsx", "Silhouette.tsx", "JumpCut.tsx", "Transitions.tsx", "transition-plan.ts", "fonts.ts"):
     COPIES[f"{RE}/components/{c}"] = [f"{TEMPLATE}/src/shared/{c}"]          # the starter's src/shared
 
 

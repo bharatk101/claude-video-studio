@@ -6,6 +6,13 @@
   `calculateMetadata` and `@remotion/media-parser`, or from the transcript when there's no footage yet, so a
   re-cut or trimmed take never ends on black frames or loses its last word. `durationInFrames` in the props
   overrides it. The skill now registers every new reel this way instead of setting lengths by hand.
+- **Transitions between clips and sections** (roadmap 1.2): "fade between my clips" or "slide to the next point"
+  is a `transitions` prop, drawn by Remotion's `TransitionSeries` (`@remotion/transitions`). Eight styles (fade,
+  slide, wipe, flip, push-cut, iris, clock-wipe, none). In the default `hold` mode the outgoing shot's last frame
+  holds while the next plays in, so the reel keeps the take's exact length and no word is cut or talked over;
+  `overlap` crossfades picture and sound for montages and re-times captions to match. Joins are checked against
+  the transcript before rendering. New `components/Transitions.tsx` and `transition-plan.ts`; CI renders both
+  modes and checks the fade frames and the sound.
 
 ## 0.6.2 (2026-10-26)
 

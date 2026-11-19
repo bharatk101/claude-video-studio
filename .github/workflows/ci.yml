@@ -78,6 +78,16 @@ jobs:
           python "$GITHUB_WORKSPACE/skills/reel-edit/scripts/measure-hook.py" out/m.png 300 2
           npx remotion render src/index.ts Example out/example.mp4 --frames=0-59 --concurrency=75% --log=error
           python "$GITHUB_WORKSPACE/skills/reel-edit/scripts/detect-cuts.py" out/example.mp4 --fps 30 --no-sheets
+          # transitions (roadmap 1.2): red+440 Hz then blue+880 Hz, joined at f60 with a 10-frame fade
+          mkdir -p public/recordings
+          ffmpeg -v error -y -f lavfi -i "color=c=red:s=1080x1920:r=30:d=2" -f lavfi -i "sine=f=440:d=2:r=48000" \
+            -f lavfi -i "color=c=blue:s=1080x1920:r=30:d=2" -f lavfi -i "sine=f=880:d=2:r=48000" \
+            -filter_complex "[0][1][2][3]concat=n=2:v=1:a=1[v][a]" -map "[v]" -map "[a]" -c:v libx264 -pix_fmt yuv420p public/recordings/ci.mp4
+          for mode in hold overlap; do
+            npx remotion render src/index.ts Example "out/t-$mode.mp4" --concurrency=75% --log=error \
+              --props="{\"words\":[],\"src\":\"recordings/ci.mp4\",\"transitions\":[{\"at\":60,\"frames\":10,\"mode\":\"$mode\"}]}"
+          done
+          python "$GITHUB_WORKSPACE/tests/check_transition_render.py" out/t-hold.mp4 out/t-overlap.mp4
 
       - name: "setup + real transcription (Windows: setup.cmd, as a double-click would)"
         run: |

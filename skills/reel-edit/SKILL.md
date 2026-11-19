@@ -37,7 +37,7 @@ Check once, before the first step:
 - **Cloud only** (no linked folder): ask for the clips as attachments, and deliver the video with SendUserFile.
 
 **"What can you do?"** Edit reels from one take or several clips: clips of any size, orientation or format joined
-into one take, pauses and ums cut, frame-exact captions, Instagram-style text hooks, five layouts, screen
+into one take, pauses and ums cut, transitions between clips or sections (fade, slide, wipe and more), frame-exact captions, Instagram-style text hooks, five layouts, screen
 recordings with smooth camera moves, music and sound effects verified in the render, and a storyboard review page.
 
 **"Check my setup":** `bash run.sh doctor` in a project, or `python3 ${CLAUDE_SKILL_DIR}/scripts/doctor.py`
@@ -251,6 +251,43 @@ the composition is `outFrames` long, and every caption, graphic and cue anchors 
 intentional. Watch the preview and list the cuts in frames before building on them; a cut that eats the end
 of a thought gets `--min-pause` raised or that span kept by hand.
 
+### 4c. Transitions (when asked)
+
+"Fade between my clips", "slide to the next point": pass `transitions` in the reel's props, at **take** frames.
+Remotion's `TransitionSeries` draws them (`components/Transitions.tsx`); `components/transition-plan.ts` does the
+timing, and `calculateReelMetadata` plans them against the take and the transcript before anything renders.
+
+```ts
+import cuts from "../../public/recordings/reel.cuts.json";
+import { joinsAt, pauseBefore } from "../shared/transition-plan";
+// between every assembled clip:
+transitions: joinsAt(cuts.detail.filter((d) => d.kind === "clip").map((d) => d.frame), { type: "fade" }),
+// or before a new point, in the pause before word 42:
+transitions: [{ at: pauseBefore(words, 42), type: "slide", direction: "from-right" }],
+```
+
+| Field | Values (default first) |
+| --- | --- |
+| `type` | `fade`, `slide`, `wipe`, `flip`, `push-cut`, `iris`, `clock-wipe`, `none` (a plain cut) |
+| `frames` | `9` (0.3 s); 6 to 12 suits reels |
+| `mode` | `hold`: the outgoing shot's last frame holds while the next plays in live. The reel stays exactly as long as the take and **nothing is re-timed**. Use it whenever someone is speaking. `overlap`: both shots play and their sound crossfades, so the reel gets `frames` shorter per join. Only for b-roll and music montages. |
+| `direction` | `from-right`, `from-left`, `from-top`, `from-bottom` (slide, wipe, flip) |
+| `timing` | `ease`, `spring` |
+
+Rules:
+
+- **Joins go at clip boundaries or in pauses, never inside a word.** Use `pauseBefore(words, i)` for a section
+  join. Before rendering, list each join in frames with the words either side of it.
+- The plan's `problems` stop the render (a join outside the take, a clip too short for its transitions). Its
+  `warnings` print during render: a join inside a word, or speech under an `overlap`. Fix every warning: move the
+  join, or switch to `hold`.
+- The starter Reel re-times captions itself (`retimeWords`, `retimeFrame`) and breaks them at every join. Anything
+  you anchor by hand (graphics, sound cues) on an `overlap` reel goes through `retimeFrame(frame, plan)`.
+- One style per reel reads as intentional; mixing several reads as a template. Hard cuts stay the default for
+  jump cuts: a transition on every jump looks like a slideshow.
+- Shader transitions (film burn, cross-zoom, ripple) are experimental in Remotion: render one in HyperFrames
+  (`references/hyperframes-hybrid.md`) rather than here.
+
 ### 5. Build
 
 **Own-channel videos start from the project's brand sheet**
@@ -298,6 +335,7 @@ video's own folders (those get deleted when a video is done):
 | `JumpCut.tsx` | plays only the kept spans of a take (from `jump-cuts.py`), optional punch-in per span, de-clicked audio |
 | `TwoThirdsPanel.tsx` | layout 4b: the rounded panel, caption colour by background |
 | `Silhouette.tsx` | layout 5: the matte cut-out at the bottom edge |
+| `Transitions.tsx` + `transition-plan.ts` | transitions between clips or sections (`@remotion/transitions`): `hold` keeps the timeline, `overlap` crossfades; joins checked against the transcript |
 
 Theme code (palettes, fonts, grounds, the creator's caption and title
 components) lives with the brand sheet in `brand/`, not here.
